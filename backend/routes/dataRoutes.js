@@ -21,3 +21,5 @@ router.patch('/tickets/:id', updateTicket);
 router.delete('/tickets/:id', deleteTicket);
 
 export default router;
+
+// Note: Consider adding rate limiting middleware to these routes
