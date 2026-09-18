@@ -450,3 +450,5 @@ function App() {
 }
 
 export default App;
+
+// App component structure optimized for performance
