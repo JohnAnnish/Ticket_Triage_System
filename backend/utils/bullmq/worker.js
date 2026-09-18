@@ -73,3 +73,5 @@ ticketWorker.on('completed', (job) => {
 ticketWorker.on('failed', (job, err) => {
     console.error(`[Worker] Job ${job.id} has failed with error ${err.message}`);
 });
+
+// Ensure worker concurrency limits are monitored
