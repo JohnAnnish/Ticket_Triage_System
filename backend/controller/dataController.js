@@ -331,3 +331,5 @@ export const getAnalytics = async (req, res) => {
         });
     }
 };
+
+// Data validation should be extended for edge cases
