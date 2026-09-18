@@ -8,7 +8,8 @@ function App() {
     isConnected,
     activeTicket,
     setActiveTicketId,
-    loading
+    loading,
+    isDemoMode
   } = useTicketSocket();
 
   // Ingestion Form State
@@ -41,6 +42,45 @@ function App() {
     if (!customerMail || !rawText) return;
 
     setSubmitting(true);
+
+    if (isDemoMode) {
+      // Demo mode: create ticket locally
+      const demoTicket = {
+        id: 'demo-' + Date.now(),
+        customer_mail: customerMail,
+        raw_text: rawText,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        drafted_response: '',
+        classification: null
+      };
+      setTickets((prev) => [demoTicket, ...prev]);
+      setCustomerMail('');
+      setRawText('');
+      if (tickets.length === 0) {
+        setActiveTicketId(demoTicket.id);
+      }
+      // Simulate processing after 2 seconds
+      setTimeout(() => {
+        setTickets((prev) =>
+          prev.map((t) => t.id === demoTicket.id ? { ...t, status: 'processing' } : t)
+        );
+      }, 2000);
+      // Simulate completion after 5 seconds
+      setTimeout(() => {
+        setTickets((prev) =>
+          prev.map((t) => t.id === demoTicket.id ? {
+            ...t,
+            status: 'completed',
+            classification: { category: 'general', priority: 'medium', sentiment: 'neutral' },
+            drafted_response: `Thank you for reaching out regarding your issue. We have reviewed your request and our team is working on resolving it promptly. We will follow up with you at ${customerMail} within 24 hours.`
+          } : t)
+        );
+      }, 5000);
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/data', {
         method: 'POST',
@@ -54,11 +94,8 @@ function App() {
 
       if (res.ok) {
         const data = await res.json();
-        // Clear input form
         setCustomerMail('');
         setRawText('');
-        
-        // Optimistically set active ticket if first
         if (tickets.length === 0) {
           setActiveTicketId(data.record.id);
         }
@@ -77,6 +114,27 @@ function App() {
     if (!activeTicket) return;
 
     setSavingOverride(true);
+
+    if (isDemoMode) {
+      setTimeout(() => {
+        setTickets((prev) =>
+          prev.map((t) => t.id === activeTicket.id ? {
+            ...t,
+            status: 'completed',
+            drafted_response: draftOverride,
+            classification: {
+              category: categoryOverride,
+              priority: priorityOverride,
+              sentiment: sentimentOverride
+            }
+          } : t)
+        );
+        alert('Ticket successfully updated (Demo Mode)!');
+        setSavingOverride(false);
+      }, 500);
+      return;
+    }
+
     try {
       const res = await fetch(`/api/tickets/${activeTicket.id}`, {
         method: 'PATCH',
@@ -114,6 +172,17 @@ function App() {
     if (!activeTicket) return;
     if (!window.confirm('Are you sure you want to delete this ticket?')) return;
 
+    if (isDemoMode) {
+      const remainingTickets = tickets.filter((t) => t.id !== activeTicket.id);
+      setTickets(remainingTickets);
+      if (remainingTickets.length > 0) {
+        setActiveTicketId(remainingTickets[0].id);
+      } else {
+        setActiveTicketId(null);
+      }
+      return;
+    }
+
     try {
       const res = await fetch(`/api/tickets/${activeTicket.id}`, {
         method: 'DELETE'
@@ -149,9 +218,15 @@ function App() {
         </div>
         <div className="status-indicator">
           <span className={`dot ${isConnected ? 'live' : 'offline'}`} />
-          <span>{isConnected ? 'Real-Time Sync Online' : 'Connecting WebSocket...'}</span>
+          <span>{isConnected ? (isDemoMode ? 'Demo Mode (Mock Data)' : 'Real-Time Sync Online') : 'Connecting WebSocket...'}</span>
         </div>
       </header>
+
+      {isDemoMode && (
+        <div style={{ backgroundColor: 'var(--accent-indigo)', color: 'white', textAlign: 'center', padding: '0.5rem', fontSize: '0.9rem' }}>
+          <strong>Demo Mode Active:</strong> Live backend not connected. Using local state and mock data.
+        </div>
+      )}
 
       {/* Main Body */}
       <main className="dashboard-container">
