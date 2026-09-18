@@ -16,3 +16,4 @@ export async function testSupabaseConnection() {
         console.error("Failed to connect to Supabase:", err);
     }
 }
+// Supabase connection pooling configuration can be tuned based on load
