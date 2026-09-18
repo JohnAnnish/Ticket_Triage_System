@@ -67,3 +67,5 @@ const startServer = async () => {
 };
 
 startServer();
+
+// Server gracefully handles unexpected errors
